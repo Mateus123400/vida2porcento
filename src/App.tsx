@@ -16,7 +16,7 @@ import { Auth } from './screens/Auth';
 type Screen = 'dashboard' | 'contagem' | 'transmutar' | 'resultados' | 'perfil';
 
 function MainApp() {
-  const { session, loadingAuth } = useUser();
+  const { session, loadingAuth, isPasswordRecovery } = useUser();
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
 
   if (loadingAuth) {
@@ -27,7 +27,7 @@ function MainApp() {
     );
   }
 
-  if (!session) {
+  if (!session || isPasswordRecovery) {
     return <Auth />;
   }
 

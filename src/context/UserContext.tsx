@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { differenceInDays, startOfDay } from 'date-fns';
-import { supabase } from '../lib/supabase';
+import { supabase, isRecoveryInitial } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
 
 // --- Types ---
@@ -45,6 +45,8 @@ interface UserContextType {
   addMonthlyGoal: (text: string) => void;
   removeMonthlyGoal: (id: string) => void;
   signOut: () => Promise<void>;
+  isPasswordRecovery: boolean;
+  setIsPasswordRecovery: (val: boolean) => void;
 }
 
 // --- Constants ---
@@ -60,7 +62,7 @@ const LEVELS: { name: Level; days: number; color: string; benefit: string }[] = 
 ];
 
 const DEFAULT_USER: UserState = {
-  name: 'Viajante',
+  name: 'Guerreiro',
   startDate: new Date().toISOString(),
   manualDays: 0,
   mode: 'auto',
@@ -77,6 +79,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(isRecoveryInitial);
 
   const [user, setUser] = useState<UserState>(() => {
     const saved = localStorage.getItem('vida2_user');
@@ -90,7 +93,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       setLoadingAuth(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true);
+      }
       setSession(session);
       if (!session) {
         setUser(DEFAULT_USER);
@@ -107,7 +113,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       if (!session) return; // Wait until logged in
 
       const authUserId = session.user.id;
-      const emailName = session.user.email?.split('@')[0] || 'Viajante';
+      const emailName = session.user.email?.split('@')[0] || 'Guerreiro';
 
       let profileId = user.profileId;
 
@@ -331,7 +337,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       user, session, loadingAuth, daysCount, currentLevel, nextLevel, daysToNextLevel,
       progressToNextLevel, levelColor, updateUser, startJourney, resetProgress,
       toggleDailyGoal, addDailyGoal, removeDailyGoal, toggleMonthlyGoal,
-      addMonthlyGoal, removeMonthlyGoal, signOut
+      addMonthlyGoal, removeMonthlyGoal, signOut,
+      isPasswordRecovery, setIsPasswordRecovery
     }}>
       {children}
     </UserContext.Provider>
